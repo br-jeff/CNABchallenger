@@ -1,73 +1,21 @@
-'use strict';
-import path from 'path'
-import { readFile } from 'fs/promises'
-import { fileURLToPath } from 'url';
-
+'use strict'
 import yargs from 'yargs'
-import chalk from 'chalk'
+import { hideBin } from 'yargs/helpers'
+import bootstrap from './src/bootstrap/bootstrap.js';
 
-const optionsYargs = yargs(process.argv.slice(2))
+const optionsYargs = yargs(hideBin(process.argv))
   .usage('Uso: $0 [options]')
   .option("f", { alias: "from", describe: "posição inicial de pesquisa da linha do Cnab", type: "number", demandOption: true })
   .option("t", { alias: "to", describe: "posição final de pesquisa da linha do Cnab", type: "number", demandOption: true })
-  .option("s", { alias: "segmento", describe: "tipo de segmento", type: "string", demandOption: true })
-  .example('$0 -f 21 -t 34 -s p', 'lista a linha e campo que from e to do cnab')
+  .option("d", { alias: "dir", describe: "Caminho do arquivo Cnab", type: "string", demandOption: false })
+  .option("s", { alias: "segmento", describe: "tipo de segmento (p,q,r)", type: "string", demandOption: false })
+  .option("c", { alias: "company", describe: "Pesquisa pelo lone da empresa", type: "string", demandOption: false })
+  .option("e", { alias: "exportJSON", describe: "Sava arquivo json", type: "boolean", demandOption: false })
+
+  .example('$0 -f 21 -t 34', 'lista a linha e campo que from e to do cnab')
+  .example('$0 -f 21 -t 34 -s r', 'lista por segmento')
+  .example('$0 -f 21 -t 34 -c ZENVIA MOBILE SERVICOS DIGITAIS AS', 'Lista pelo nome da empresa')
+  .example('$0 -f 21 -t 34 -c ZENVIA MOBILE SERVICOS DIGITAIS AS -s "r" ', 'Lista pelo nome da empresa e segmento')
   .argv;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const file = path.resolve(`${__dirname}/cnabExample.rem`)
-
-const { from, to, segmento } = optionsYargs
-
-const sliceArrayPosition = (arr, ...positions) => [...arr].slice(...positions)
-
-const messageLog = (segmento, segmentoType, from, to) => `
------ Cnab linha ${segmentoType} -----
-
-posição from: ${chalk.inverse.bgBlack(from)}
-
-posição to: ${chalk.inverse.bgBlack(to)}
-
-item isolado: ${chalk.inverse.bgBlack(segmento.substring(from - 1, to))}
-
-item dentro da linha P: 
-  ${segmento.substring(0, from)}${chalk.inverse.bgBlack(segmento.substring(from - 1, to))}${segmento.substring(to)}
-
------ FIM ------
-`
-
-const log = console.log
-
-console.time('leitura Async')
-
-readFile(file, 'utf8')
-  .then(file => {
-    const cnabArray = file.split('\n')
-
-    const cnabHeader = sliceArrayPosition(cnabArray, 0, 2)
-
-    const [cnabBodySegmentoP, cnabBodySegmentoQ, cnabBodySegmentoR] = sliceArrayPosition(cnabArray, 2, -2)
-
-    const cnabTail = sliceArrayPosition(cnabArray, -2)
-
-    if (segmento === 'p') {
-      log(messageLog(cnabBodySegmentoP, 'P', from, to))
-      return
-    }
-
-    if (segmento === 'q') {
-      log(messageLog(cnabBodySegmentoQ, 'Q', from, to))
-      return
-    }
-
-    if (segmento === 'r') {
-      log(messageLog(cnabBodySegmentoR, 'R', from, to))
-      return
-    }
-
-  })
-  .catch(error => {
-    console.log("🚀 ~ file: cnabRows.js ~ line 76 ~ error", error)
-  })
-console.timeEnd('leitura Async')
+bootstrap(optionsYargs)
